@@ -348,7 +348,6 @@
   </style>
 </head>
 <body>
-  <!-- Main Menu -->
   <div id="mainMenu" class="mainMenu">
     <div class="menuTitle">Broken Patriot</div>
     <div class="menuSubtitle">
@@ -361,7 +360,6 @@
     </div>
   </div>
 
-  <!-- Story Modal -->
   <div id="storyModal" class="mainMenu hidden">
     <div style="max-width: 600px; text-align: left;">
       <div class="menuTitle" style="text-align: center; font-size: 32px;">Story</div>
@@ -373,16 +371,16 @@
         </p>
         <p>
           But the war took a price you couldn't pay: your wife. During the chaos of an insurgent attack on the city,
-          she was caught in the crossfire. The authorities called it "collateral damage." The nation mourned briefly, 
+          she was caught in the crossfire. The authorities called it "collateral damage." The nation mourned briefly,
           then moved on. They praised your heroism while ignoring the void in your heart.
         </p>
         <p>
-          Slowly, the truth unfolded. The war was built on lies. Leaders sacrificed civilians for territory. 
-          Soldiers like you were the tools of their ambition. Your patriotism was a shackle, and your wife's death 
+          Slowly, the truth unfolded. The war was built on lies. Leaders sacrificed civilians for territory.
+          Soldiers like you were the tools of their ambition. Your patriotism was a shackle, and your wife's death
           was the cost of a lie you finally saw through.
         </p>
         <p>
-          Now, you are a thief. You steal what the nation holds most dear: its secrets, its resources, its pride. 
+          Now, you are a thief. You steal what the nation holds most dear: its secrets, its resources, its pride.
           Every target is a wound reopened. Every job is an act of betrayal against those who betrayed you first.
         </p>
       </div>
@@ -390,7 +388,6 @@
     </div>
   </div>
 
-  <!-- Controls Modal -->
   <div id="controlsModal" class="mainMenu hidden">
     <div style="max-width: 600px; text-align: left;">
       <div class="menuTitle" style="text-align: center; font-size: 32px;">Controls</div>
@@ -411,7 +408,6 @@
     </div>
   </div>
 
-  <!-- Game Container -->
   <div id="gameShell">
     <canvas id="gameCanvas" width="1200" height="600"></canvas>
 
@@ -455,7 +451,6 @@
       <div id="damageIndicator" class="damageIndicator"></div>
     </div>
 
-    <!-- Dialogue Menu -->
     <div id="dialogueMenu" class="dialogueMenu">
       <div class="dialogueTitle" id="dialogueTitle">???</div>
       <div class="dialogueText" id="dialogueText">Loading...</div>
@@ -466,8 +461,7 @@
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
-    
-    // Game States
+
     const GAME_STATE = {
       MENU: 'menu',
       PLAYING: 'playing',
@@ -478,7 +472,6 @@
 
     let gameState = GAME_STATE.MENU;
 
-    // World Map
     const map = [
       "22222222222222222222222222",
       "21111111111111111111111112",
@@ -495,7 +488,6 @@
       "22222222222222222222222222"
     ];
 
-    // Player
     const player = {
       x: 3.5,
       y: 3.5,
@@ -512,7 +504,6 @@
       shootCooldown: 0
     };
 
-    // Enemies
     let enemies = [];
     const enemySpawns = [
       { x: 8.5, y: 8.5 },
@@ -521,10 +512,9 @@
       { x: 12.5, y: 12.5 }
     ];
 
-    // Story Points with Dialogue
     const storyPoints = [
       {
-        x: 3.5,
+        x: 8.5,
         y: 3.5,
         type: 'start',
         dialogue: {
@@ -570,8 +560,8 @@
     let waveCount = 0;
     let enemiesDefeated = 0;
     let gameLoopActive = false;
+    let visitedStoryPoints = new Set();
 
-    // Menu Functions
     document.getElementById('startBtn').addEventListener('click', initGame);
     document.getElementById('storyBtn').addEventListener('click', () => {
       document.getElementById('storyModal').classList.remove('hidden');
@@ -580,8 +570,13 @@
       document.getElementById('controlsModal').classList.remove('hidden');
     });
     document.getElementById('pauseBtn').addEventListener('click', () => {
-      gameState = gameState === GAME_STATE.PLAYING ? GAME_STATE.PAUSED : GAME_STATE.PLAYING;
-      document.getElementById('pauseBtn').textContent = gameState === GAME_STATE.PAUSED ? 'Resume' : 'Pause';
+      if (gameState === GAME_STATE.PLAYING) {
+        gameState = GAME_STATE.PAUSED;
+        document.getElementById('pauseBtn').textContent = 'Resume';
+      } else if (gameState === GAME_STATE.PAUSED) {
+        gameState = GAME_STATE.PLAYING;
+        document.getElementById('pauseBtn').textContent = 'Pause';
+      }
     });
 
     window.closeStoryModal = function() {
@@ -591,7 +586,6 @@
       document.getElementById('controlsModal').classList.add('hidden');
     };
 
-    // Initialize Game
     function initGame() {
       gameState = GAME_STATE.PLAYING;
       player.hp = player.maxHp;
@@ -604,6 +598,7 @@
       waveCount = 0;
       enemiesDefeated = 0;
       activeDialogue = null;
+      visitedStoryPoints = new Set();
 
       document.getElementById('mainMenu').classList.add('hidden');
       document.getElementById('gameShell').classList.add('active');
@@ -611,9 +606,10 @@
       document.getElementById('playerAmmo').textContent = player.ammo;
       document.getElementById('gameScore').textContent = player.score;
       document.getElementById('enemyCount').textContent = '0';
+      document.getElementById('pauseBtn').textContent = 'Pause';
 
       spawnEnemyWave();
-      
+
       if (!gameLoopActive) {
         gameLoopActive = true;
         lastTime = performance.now();
@@ -641,7 +637,6 @@
       document.getElementById('enemyCount').textContent = enemies.length;
     }
 
-    // Input
     document.addEventListener('keydown', (e) => {
       keys[e.key.toLowerCase()] = true;
       if (e.key === ' ') {
@@ -859,7 +854,6 @@
         ctx.fillRect(i * columnWidth, canvas.height / 2 - wallHeight / 2, columnWidth + 1, wallHeight);
       }
 
-      // Draw enemies
       for (let enemy of enemies) {
         const dx = enemy.x - player.x;
         const dy = enemy.y - player.y;
@@ -878,7 +872,6 @@
           ctx.lineWidth = 2;
           ctx.strokeRect(screenX - scale / 2, canvas.height / 2 - scale / 2, scale, scale);
 
-          // Enemy health bar
           const hpPercent = enemy.hp / enemy.maxHp;
           ctx.fillStyle = hpPercent > 0.5 ? "#8ad2ff" : "#ff6b6b";
           ctx.fillRect(screenX - scale / 2, canvas.height / 2 - scale / 2 - 12, scale * hpPercent, 6);
@@ -925,7 +918,6 @@
         }
       }
 
-      // Draw enemies
       for (let enemy of enemies) {
         const dx = enemy.x - player.x;
         const dy = enemy.y - player.y;
@@ -950,7 +942,6 @@
         ctx.fillRect(screenX - 10, screenY - 20, 20 * hpPercent, 3);
       }
 
-      // Player character
       const pX = canvas.width / 2;
       const pY = canvas.height - 60;
 
@@ -1015,7 +1006,7 @@
     }
 
     function showDialogue(point) {
-      if (!point.dialogue) return;
+      if (!point || !point.dialogue) return;
       activeDialogue = point.dialogue;
       const menu = document.getElementById('dialogueMenu');
       document.getElementById('dialogueTitle').textContent = point.dialogue.title;
@@ -1027,7 +1018,9 @@
         const btn = document.createElement('div');
         btn.className = 'dialogueOption';
         btn.textContent = opt.text;
-        btn.onclick = closeDialogue;
+        btn.onclick = () => {
+          closeDialogue();
+        };
         optionsDiv.appendChild(btn);
       });
 
@@ -1057,10 +1050,10 @@
 
         updateEnemies();
 
-        // Check story points
         for (let point of storyPoints) {
           const dist = Math.hypot(player.x - point.x, player.y - point.y);
-          if (dist < 0.6 && !activeDialogue && gameState === GAME_STATE.PLAYING) {
+          if (!visitedStoryPoints.has(point.type) && dist < 0.9) {
+            visitedStoryPoints.add(point.type);
             showDialogue(point);
             break;
           }
