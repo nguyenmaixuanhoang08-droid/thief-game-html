@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Broken Patriot - Advanced Edition</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: rgba(14, 18, 24, 0.78);
+      --text: #e8f0ff;
+      --accent: #ffb454;
+      --danger: #ff6b6b;
+      --good: #8ad2ff;
+      --shadow: rgba(0,0,0,0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #182033, #0a0f19 55%);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #gameShell {
+      width: min(98vw, 1200px);
+      position: relative;
+      border: 2px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.22);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #111827;
+    }
+
+    #hud {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .topBar {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .modeBox {
+      background: rgba(10, 12, 21, 0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 11px;
+      box-shadow: 0 8px 18px var(--shadow);
+    }
+
+    .statsBar {
+      display: flex;
+      gap: 16px;
+      background: rgba(10, 12, 21, 0.85);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .statLabel {
+      color: rgba(232, 240, 255, 0.6);
+      text-transform: uppercase;
+    }
+
+    .statValue {
+      color: var(--good);
+      font-weight: bold;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    button {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(20, 31, 48, 0.86);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s ease;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    button:hover {
+      background: rgba(40, 66, 98, 0.9);
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      background: linear-gradient(180deg, #ffb454, #d97b2d);
+      color: #1b1207;
+      border-color: rgba(0,0,0,0.3);
+    }
+
+    .storyPanel {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      width: min(40vw, 420px);
+      max-width: calc(100% - 24px);
+      background: rgba(9, 13, 18, 0.92);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+      line-height: 1.6;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 5;
+    }
+
+    .storyTitle {
+      color: var(--accent);
+      font-weight: bold;
+      margin-bottom: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .storyText {
+      color: #d8e4ff;
+      font-size: 13px;
+    }
+
+    .dialogueMenu {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(9, 13, 18, 0.95);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 24px;
+      z-index: 100;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      display: none;
+      pointer-events: auto;
+    }
+
+    .dialogueMenu.active {
+      display: block;
+    }
+
+    .dialogueTitle {
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .dialogueText {
+      color: #d8e4ff;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .dialogueOptions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .dialogueOption {
+      background: rgba(40, 66, 98, 0.7);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.2s ease;
+      text-align: left;
+    }
+
+    .dialogueOption:hover {
+      background: rgba(60, 90, 130, 0.9);
+      border-color: var(--accent);
+    }
+
+    .mainMenu {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 17, 23, 0.95), rgba(24, 32, 51, 0.95));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+      pointer-events: auto;
+    }
+
+    .mainMenu.hidden {
+      display: none;
+      pointer-events: none;
+    }
+
+    .menuTitle {
+      color: var(--accent);
+      font-size: 48px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .menuSubtitle {
+      color: #a8c9ff;
+      font-size: 16px;
+      margin-bottom: 32px;
+      text-align: center;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+
+    .menuButtons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 280px;
+    }
+
+    .menuButton {
+      background: linear-gradient(180deg, rgba(60, 90, 130, 0.8), rgba(40, 66, 98, 0.8));
+      border: 2px solid var(--accent);
+      color: var(--text);
+      padding: 16px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      text-transform: uppercase;
+      transition: 0.3s ease;
+      text-align: center;
+    }
+
+    .menuButton:hover {
+      background: linear-gradient(180deg, var(--accent), #d97b2d);
+      color: #1b1207;
+      transform: scale(1.05);
+    }
+
+    .crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30px;
+      height: 30px;
+      pointer-events: none;
+      z-index: 8;
+    }
+
+    .crosshair::before,
+    .crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.7);
+    }
+
+    .crosshair::before {
+      width: 20px;
+      height: 2px;
+      left: 5px;
+      top: 14px;
+    }
+
+    .crosshair::after {
+      width: 2px;
+      height: 20px;
+      left: 14px;
+      top: 5px;
+    }
+
+    .damageIndicator {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 7;
+    }
+
+    .enemyLabel {
+      position: absolute;
+      background: rgba(255, 107, 107, 0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+      z-index: 6;
+      pointer-events: none;
+    }
+
+    @media (max-width: 800px) {
+      .topBar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .storyPanel {
+        width: calc(100% - 24px);
+        left: 12px;
+      }
+
+      .statsBar {
+        font-size: 10px;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Main Menu -->
+  <div id="mainMenu" class="mainMenu">
+    <div class="menuTitle">Broken Patriot</div>
+    <div class="menuSubtitle">
+      A thief, betrayed by the nation he served. His wife lost in war. His patriotism corrupted into revenge.
+    </div>
+    <div class="menuButtons">
+      <button class="menuButton" id="startBtn">Start Game</button>
+      <button class="menuButton" id="storyBtn">Story</button>
+      <button class="menuButton" id="controlsBtn">Controls</button>
+    </div>
+  </div>
+
+  <!-- Story Modal -->
+  <div id="storyModal" class="mainMenu" style="display: none;">
+    <div style="max-width: 600px; text-align: left;">
+      <div class="menuTitle" style="text-align: center; font-size: 32px;">Story</div>
+      <div class="storyText" style="font-size: 14px; line-height: 1.8; margin: 20px 0;">
+        <p><strong>The Patriot's Fall</strong></p>
+        <p>
+          You were once a decorated soldier of your nation. When war threatened everything, you sacrificed yourself—
+          not just your body, but your soul. Every mission, every life you took, was justified by the flag above.
+        </p>
+        <p>
+          But the war took a price you couldn't pay: your wife. During the chaos of an insurgent attack on the city,
+          she was caught in the crossfire. The authorities called it "collateral damage." The nation mourned briefly, 
+          then moved on. They praised your heroism while ignoring the void in your heart.
+        </p>
+        <p>
+          Slowly, the truth unfolded. The war was built on lies. Leaders sacrificed civilians for territory. 
+          Soldiers like you were the tools of their ambition. Your patriotism was a shackle, and your wife's death 
+          was the cost of a lie you finally saw through.
+        </p>
+        <p>
+          Now, you are a thief. You steal what the nation holds most dear: its secrets, its resources, its pride. 
+          Every target is a wound reopened. Every job is an act of betrayal against those who betrayed you first.
+        </p>
+      </div>
+      <button class="menuButton" style="width: 100%; margin-top: 20px;" onclick="closeStoryModal()">Back</button>
+    </div>
+  </div>
+
+  <!-- Controls Modal -->
+  <div id="controlsModal" class="mainMenu" style="display: none;">
+    <div style="max-width: 600px; text-align: left;">
+      <div class="menuTitle" style="text-align: center; font-size: 32px;">Controls</div>
+      <div class="storyText" style="font-size: 13px; line-height: 1.8; margin: 20px 0;">
+        <p><strong>Movement & Camera</strong></p>
+        <p>W / A / S / D - Move forward, left, backward, right</p>
+        <p>← / → or Q / E - Rotate view</p>
+        <p><strong>Combat</strong></p>
+        <p>SPACE - Shoot / Fire weapon</p>
+        <p>Mouse - Look around (aiming)</p>
+        <p><strong>View Modes</strong></p>
+        <p>Press FPS/TPP button or press V - Switch between First Person & Third Person</p>
+        <p><strong>Dialogue & Interaction</strong></p>
+        <p>ENTER - Interact with story points / Accept dialogue</p>
+        <p><strong>Game</strong></p>
+        <p>ESC - Pause / Return to menu</p>
+      </div>
+      <button class="menuButton" style="width: 100%; margin-top: 20px;" onclick="closeControlsModal()">Back</button>
+    </div>
+  </div>
+
+  <!-- Game Container -->
+  <div id="gameShell">
+    <canvas id="gameCanvas" width="1200" height="600"></canvas>
+
+    <div id="hud">
+      <div class="crosshair"></div>
+
+      <div class="topBar">
+        <div class="modeBox" id="modeLabel">View: FPS</div>
+        <div class="statsBar">
+          <div class="stat">
+            <span class="statLabel">HP</span>
+            <span class="statValue" id="playerHP">100</span>
+          </div>
+          <div class="stat">
+            <span class="statLabel">Ammo</span>
+            <span class="statValue" id="playerAmmo">30</span>
+          </div>
+          <div class="stat">
+            <span class="statLabel">Enemies</span>
+            <span class="statValue" id="enemyCount">0</span>
+          </div>
+          <div class="stat">
+            <span class="statLabel">Score</span>
+            <span class="statValue" id="gameScore">0</span>
+          </div>
+        </div>
+        <div class="buttons">
+          <button class="active" data-view="fps">FPS</button>
+          <button data-view="tpp">TPP</button>
+          <button id="pauseBtn">Pause</button>
+        </div>
+      </div>
+
+      <div class="storyPanel">
+        <div class="storyTitle">Current Objective</div>
+        <div class="storyText" id="storyText">
+          Survive. The nation sent its soldiers to silence you. Show them the cost of betrayal.
+        </div>
+      </div>
+
+      <div id="damageIndicator" class="damageIndicator"></div>
+    </div>
+
+    <!-- Dialogue Menu -->
+    <div id="dialogueMenu" class="dialogueMenu">
+      <div class="dialogueTitle" id="dialogueTitle">???</div>
+      <div class="dialogueText" id="dialogueText">Loading...</div>
+      <div class="dialogueOptions" id="dialogueOptions"></div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Game States
+    const GAME_STATE = {
+      MENU: 'menu',
+      PLAYING: 'playing',
+      PAUSED: 'paused',
+      DIALOGUE: 'dialogue',
+      GAME_OVER: 'gameOver'
+    };
+
+    let gameState = GAME_STATE.MENU;
+
+    // World Map
+    const map = [
+      "22222222222222222222222222",
+      "21111111111111111111111112",
+      "21111211112111121111211112",
+      "21111111111111111111111112",
+      "21112111121111211112111112",
+      "21111111111111111111111112",
+      "21111211112111121111211112",
+      "21111111111111111111111112",
+      "21112111121111211112111112",
+      "21111111111111111111111112",
+      "21111211112111121111211112",
+      "21111111111111111111111112",
+      "22222222222222222222222222"
+    ];
+
+    // Player
+    const player = {
+      x: 3.5,
+      y: 3.5,
+      angle: 0,
+      view: "fps",
+      hp: 100,
+      maxHp: 100,
+      ammo: 30,
+      score: 0,
+      radius: 0.2,
+      speed: 0.12,
+      turnSpeed: 0.05,
+      isShooting: false,
+      shootCooldown: 0
+    };
+
+    // Enemies
+    let enemies = [];
+    const enemySpawns = [
+      { x: 8.5, y: 8.5 },
+      { x: 15.5, y: 4.5 },
+      { x: 20.5, y: 9.5 },
+      { x: 12.5, y: 12.5 }
+    ];
+
+    // Story Points with Dialogue
+    const storyPoints = [
+      {
+        x: 3.5,
+        y: 3.5,
+        type: 'start',
+        dialogue: {
+          title: 'The Stolen Oath',
+          text: 'You remember the day you took the oath. "For country, for honor." Those words meant everything then. Now, they taste like ash.',
+          options: [
+            { text: 'I was a fool.', next: null },
+            { text: 'The nation is the fool.', next: null }
+          ]
+        }
+      },
+      {
+        x: 10.5,
+        y: 5.5,
+        type: 'memory',
+        dialogue: {
+          title: 'The Market',
+          text: 'This was where she died. You still remember her last smile before the explosions. The government called it "necessary sacrifice." You call it murder.',
+          options: [
+            { text: 'They will pay.', next: null },
+            { text: 'I will make them understand.', next: null }
+          ]
+        }
+      },
+      {
+        x: 18.5,
+        y: 8.5,
+        type: 'vault',
+        dialogue: {
+          title: 'The Archive',
+          text: 'War records, hidden from the public. Names of the innocent killed in "operations." Proof that your wife\'s death was not collateral—it was policy.',
+          options: [
+            { text: 'Expose them.', next: null },
+            { text: 'Burn it all.', next: null }
+          ]
+        }
+      }
+    ];
+
+    let activeDialogue = null;
+    let keys = {};
+    let lastTime = 0;
+    let waveCount = 0;
+    let enemiesDefeated = 0;
+
+    // Initialize
+    function initGame() {
+      gameState = GAME_STATE.PLAYING;
+      player.hp = player.maxHp;
+      player.ammo = 30;
+      player.score = 0;
+      enemies = [];
+      waveCount = 0;
+      enemiesDefeated = 0;
+      spawnEnemyWave();
+      document.getElementById('mainMenu').classList.add('hidden');
+      document.getElementById('gameCanvas').parentElement.style.display = 'block';
+      lastTime = performance.now();
+      gameLoop(lastTime);
+    }
+
+    function spawnEnemyWave() {
+      waveCount++;
+      const enemyCount = Math.min(2 + waveCount, 6);
+      for (let i = 0; i < enemyCount; i++) {
+        const spawn = enemySpawns[i % enemySpawns.length];
+        enemies.push({
+          x: spawn.x + (Math.random() - 0.5) * 2,
+          y: spawn.y + (Math.random() - 0.5) * 2,
+          angle: Math.random() * Math.PI * 2,
+          hp: 30,
+          maxHp: 30,
+          shootCooldown: 0,
+          speed: 0.06,
+          detectionRange: 15,
+          attackRange: 12
+        });
+      }
+    }
+
+    document.getElementById('startBtn').addEventListener('click', initGame);
+    document.getElementById('storyBtn').addEventListener('click', () => {
+      document.getElementById('storyModal').style.display = 'flex';
+    });
+    document.getElementById('controlsBtn').addEventListener('click', () => {
+      document.getElementById('controlsModal').style.display = 'flex';
+    });
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      gameState = gameState === GAME_STATE.PLAYING ? GAME_STATE.PAUSED : GAME_STATE.PLAYING;
+      document.getElementById('pauseBtn').textContent = gameState === GAME_STATE.PAUSED ? 'Resume' : 'Pause';
+    });
+
+    window.closeStoryModal = function() {
+      document.getElementById('storyModal').style.display = 'none';
+    };
+    window.closeControlsModal = function() {
+      document.getElementById('controlsModal').style.display = 'none';
+    };
+
+    // Input
+    document.addEventListener('keydown', (e) => {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key === ' ') {
+        player.isShooting = true;
+        e.preventDefault();
+      }
+      if (e.key === 'v' || e.key === 'V') {
+        setView(player.view === 'fps' ? 'tpp' : 'fps');
+      }
+      if (e.key === 'Escape') {
+        if (gameState === GAME_STATE.PLAYING) {
+          gameState = GAME_STATE.PAUSED;
+          document.getElementById('pauseBtn').textContent = 'Resume';
+        }
+      }
+      if (e.key === 'Enter' && activeDialogue) {
+        closeDialogue();
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      keys[e.key.toLowerCase()] = false;
+      if (e.key === ' ') {
+        player.isShooting = false;
+      }
+    });
+
+    function setView(view) {
+      player.view = view;
+      const buttons = document.querySelectorAll("button[data-view]");
+      buttons.forEach(btn => btn.classList.toggle("active", btn.dataset.view === view));
+      document.getElementById('modeLabel').textContent = "View: " + view.toUpperCase();
+    }
+
+    document.querySelectorAll("button[data-view]").forEach(btn => {
+      btn.addEventListener('click', () => setView(btn.dataset.view));
+    });
+
+    function isWall(x, y) {
+      const mapX = Math.floor(x);
+      const mapY = Math.floor(y);
+      if (mapY < 0 || mapY >= map.length || mapX < 0 || mapX >= map[0].length) return true;
+      return map[mapY][mapX] !== '1';
+    }
+
+    function movePlayer() {
+      const forward = { x: Math.cos(player.angle), y: Math.sin(player.angle) };
+      const right = { x: Math.cos(player.angle + Math.PI / 2), y: Math.sin(player.angle + Math.PI / 2) };
+
+      if (keys["w"]) {
+        const nx = player.x + forward.x * player.speed;
+        const ny = player.y + forward.y * player.speed;
+        if (!isWall(nx, player.y)) player.x = nx;
+        if (!isWall(player.x, ny)) player.y = ny;
+      }
+      if (keys["s"]) {
+        const nx = player.x - forward.x * player.speed;
+        const ny = player.y - forward.y * player.speed;
+        if (!isWall(nx, player.y)) player.x = nx;
+        if (!isWall(player.x, ny)) player.y = ny;
+      }
+      if (keys["a"]) {
+        const nx = player.x + right.x * player.speed;
+        const ny = player.y + right.y * player.speed;
+        if (!isWall(nx, player.y)) player.x = nx;
+        if (!isWall(player.x, ny)) player.y = ny;
+      }
+      if (keys["d"]) {
+        const nx = player.x - right.x * player.speed;
+        const ny = player.y - right.y * player.speed;
+        if (!isWall(nx, player.y)) player.x = nx;
+        if (!isWall(player.x, ny)) player.y = ny;
+      }
+      if (keys["arrowleft"] || keys["q"]) player.angle -= player.turnSpeed;
+      if (keys["arrowright"] || keys["e"]) player.angle += player.turnSpeed;
+    }
+
+    function shootRay() {
+      if (player.ammo <= 0 || player.shootCooldown > 0) return;
+      player.ammo--;
+      player.shootCooldown = 0.1;
+
+      let closestEnemy = null;
+      let closestDist = 5;
+
+      for (let enemy of enemies) {
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const dist = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx);
+        const angleDiff = Math.abs(angle - player.angle);
+
+        if (angleDiff < 0.15 && dist < closestDist) {
+          closestEnemy = enemy;
+          closestDist = dist;
+        }
+      }
+
+      if (closestEnemy) {
+        closestEnemy.hp -= 25;
+        if (closestEnemy.hp <= 0) {
+          enemies = enemies.filter(e => e !== closestEnemy);
+          player.score += 100;
+          enemiesDefeated++;
+
+          if (enemies.length === 0) {
+            spawnEnemyWave();
+          }
+        }
+      }
+
+      document.getElementById('playerAmmo').textContent = player.ammo;
+    }
+
+    function updateEnemies() {
+      for (let enemy of enemies) {
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < enemy.detectionRange) {
+          const targetAngle = Math.atan2(dy, dx);
+          const diff = targetAngle - enemy.angle;
+          const normalizedDiff = Math.atan2(Math.sin(diff), Math.cos(diff));
+          enemy.angle += normalizedDiff * 0.08;
+
+          if (dist > 1.2) {
+            enemy.x += Math.cos(enemy.angle) * enemy.speed;
+            enemy.y += Math.sin(enemy.angle) * enemy.speed;
+
+            if (isWall(enemy.x, enemy.y)) {
+              enemy.x -= Math.cos(enemy.angle) * enemy.speed;
+              enemy.y -= Math.sin(enemy.angle) * enemy.speed;
+              enemy.angle += (Math.random() - 0.5) * 0.5;
+            }
+          }
+
+          if (dist < enemy.attackRange) {
+            enemy.shootCooldown--;
+            if (enemy.shootCooldown <= 0) {
+              if (Math.random() > 0.4) {
+                player.hp -= 5;
+                triggerDamageFlash();
+              }
+              enemy.shootCooldown = 1 + Math.random() * 1;
+            }
+          }
+        }
+      }
+
+      document.getElementById('playerHP').textContent = Math.max(0, player.hp);
+      document.getElementById('enemyCount').textContent = enemies.length;
+      document.getElementById('gameScore').textContent = player.score;
+
+      if (player.hp <= 0) {
+        endGame();
+      }
+    }
+
+    function triggerDamageFlash() {
+      const indicator = document.getElementById('damageIndicator');
+      indicator.style.background = 'rgba(255,107,107,0.4)';
+      setTimeout(() => {
+        indicator.style.background = 'rgba(255,107,107,0)';
+      }, 150);
+    }
+
+    function drawBackgroundSky() {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height / 2);
+      gradient.addColorStop(0, "#0f172a");
+      gradient.addColorStop(1, "#2a3f5f");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+
+      const floorGradient = ctx.createLinearGradient(0, canvas.height / 2, 0, canvas.height);
+      floorGradient.addColorStop(0, "#1a2333");
+      floorGradient.addColorStop(1, "#090d16");
+      ctx.fillStyle = floorGradient;
+      ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+    }
+
+    function renderFPS() {
+      drawBackgroundSky();
+
+      const fov = Math.PI / 3;
+      const rayCount = 280;
+      const columnWidth = canvas.width / rayCount;
+
+      for (let i = 0; i < rayCount; i++) {
+        const rayAngle = player.angle - fov / 2 + (i / rayCount) * fov;
+        let distance = 0;
+        let hit = false;
+
+        while (!hit && distance < 20) {
+          distance += 0.015;
+          const testX = player.x + Math.cos(rayAngle) * distance;
+          const testY = player.y + Math.sin(rayAngle) * distance;
+          if (isWall(testX, testY)) hit = true;
+        }
+
+        if (!hit) continue;
+
+        const correctedDistance = distance * Math.cos(rayAngle - player.angle);
+        const wallHeight = Math.min(canvas.height, (canvas.height / correctedDistance) * 1.2);
+        const wallShade = Math.max(10, 255 - correctedDistance * 15);
+        const color = `rgb(${wallShade * 0.4}, ${wallShade * 0.55}, ${wallShade})`;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(i * columnWidth, canvas.height / 2 - wallHeight / 2, columnWidth + 1, wallHeight);
+
+        ctx.fillStyle = "rgba(0,0,0," + Math.min(0.7, correctedDistance * 0.06) + ")";
+        ctx.fillRect(i * columnWidth, canvas.height / 2 - wallHeight / 2, columnWidth + 1, wallHeight);
+      }
+
+      // Draw enemies
+      for (let enemy of enemies) {
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const dist = Math.hypot(dx, dy);
+        const angle = Math.atan2(dy, dx) - player.angle;
+
+        if (dist < 15 && Math.abs(angle) < Math.PI / 3 + 0.1) {
+          const screenX = canvas.width / 2 + angle * (canvas.width / 2);
+          const correctedDist = dist * Math.cos(angle);
+          const scale = Math.min(80, canvas.height / (correctedDist * 0.7));
+
+          ctx.fillStyle = `rgba(210, 108, 108, ${1 - correctedDist / 15})`;
+          ctx.fillRect(screenX - scale / 2, canvas.height / 2 - scale / 2, scale, scale);
+
+          ctx.strokeStyle = "rgba(255, 107, 107, 0.8)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(screenX - scale / 2, canvas.height / 2 - scale / 2, scale, scale);
+
+          // Enemy health bar
+          const hpPercent = enemy.hp / enemy.maxHp;
+          ctx.fillStyle = hpPercent > 0.5 ? "#8ad2ff" : "#ff6b6b";
+          ctx.fillRect(screenX - scale / 2, canvas.height / 2 - scale / 2 - 12, scale * hpPercent, 6);
+        }
+      }
+    }
+
+    function renderTPP() {
+      ctx.fillStyle = "#101826";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#1a2333";
+      ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2 + 80;
+      const tileScale = 40;
+      const maxRange = 8;
+
+      for (let y = Math.floor(player.y - maxRange); y <= Math.ceil(player.y + maxRange); y++) {
+        for (let x = Math.floor(player.x - maxRange); x <= Math.ceil(player.x + maxRange); x++) {
+          if (y < 0 || x < 0 || y >= map.length || x >= map[0].length) continue;
+
+          const cell = map[y][x];
+          if (cell !== '1') continue;
+
+          const dx = x - player.x;
+          const dy = y - player.y;
+
+          const rotatedX = dx * Math.cos(-player.angle) - dy * Math.sin(-player.angle);
+          const rotatedY = dx * Math.sin(-player.angle) + dy * Math.cos(-player.angle);
+
+          const screenX = cx + rotatedX * tileScale;
+          const screenY = cy + rotatedY * tileScale;
+          const size = 36;
+          const depth = Math.max(0.3, 1 - (Math.hypot(dx, dy) / maxRange));
+
+          ctx.fillStyle = `rgba(${Math.floor(50 + depth * 130)}, ${Math.floor(70 + depth * 130)}, ${Math.floor(90 + depth * 150)}, 1)`;
+          ctx.fillRect(screenX - size / 2, screenY - size / 2, size, size);
+
+          ctx.strokeStyle = "rgba(255,255,255,0.1)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(screenX - size / 2, screenY - size / 2, size, size);
+        }
+      }
+
+      // Draw enemies
+      for (let enemy of enemies) {
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+
+        const rotatedX = dx * Math.cos(-player.angle) - dy * Math.sin(-player.angle);
+        const rotatedY = dx * Math.sin(-player.angle) + dy * Math.cos(-player.angle);
+
+        const screenX = cx + rotatedX * tileScale;
+        const screenY = cy + rotatedY * tileScale;
+
+        ctx.fillStyle = "#d96c6c";
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#ff6b6b";
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ff6b6b";
+        ctx.stroke();
+
+        const hpPercent = enemy.hp / enemy.maxHp;
+        ctx.fillStyle = hpPercent > 0.5 ? "#8ad2ff" : "#ff6b6b";
+        ctx.fillRect(screenX - 10, screenY - 20, 20 * hpPercent, 3);
+      }
+
+      // Player character
+      const pX = canvas.width / 2;
+      const pY = canvas.height - 60;
+
+      ctx.fillStyle = "#f0c38e";
+      ctx.beginPath();
+      ctx.arc(pX, pY - 30, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#c97b5c";
+      ctx.fillRect(pX - 14, pY - 6, 28, 50);
+
+      ctx.fillStyle = "#2b3648";
+      ctx.fillRect(pX + 14, pY - 2, 28, 6);
+
+      ctx.strokeStyle = "#ffd27d";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(pX, pY - 20);
+      ctx.lineTo(pX + Math.cos(player.angle) * 28, pY - 20 + Math.sin(player.angle) * 28);
+      ctx.stroke();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (gameState === GAME_STATE.PAUSED) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = var(--accent);
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
+      } else if (player.view === "fps") {
+        renderFPS();
+      } else {
+        renderTPP();
+      }
+    }
+
+    function endGame() {
+      gameState = GAME_STATE.GAME_OVER;
+      const menu = document.getElementById('mainMenu');
+      menu.classList.remove('hidden');
+      menu.innerHTML = `
+        <div>
+          <div class="menuTitle">Mission Failed</div>
+          <div class="menuSubtitle">You have fallen in battle. The nation has won.</div>
+          <div style="margin: 20px 0; color: #a8c9ff; font-size: 16px;">
+            <p>Score: <strong>${player.score}</strong></p>
+            <p>Enemies Defeated: <strong>${enemiesDefeated}</strong></p>
+            <p>Waves Survived: <strong>${waveCount}</strong></p>
+          </div>
+          <button class="menuButton" onclick="location.reload()">Return to Menu</button>
+        </div>
+      `;
+    }
+
+    function showDialogue(point) {
+      if (!point.dialogue) return;
+      activeDialogue = point.dialogue;
+      const menu = document.getElementById('dialogueMenu');
+      document.getElementById('dialogueTitle').textContent = point.dialogue.title;
+      document.getElementById('dialogueText').textContent = point.dialogue.text;
+
+      const optionsDiv = document.getElementById('dialogueOptions');
+      optionsDiv.innerHTML = '';
+      point.dialogue.options.forEach(opt => {
+        const btn = document.createElement('div');
+        btn.className = 'dialogueOption';
+        btn.textContent = opt.text;
+        btn.onclick = closeDialogue;
+        optionsDiv.appendChild(btn);
+      });
+
+      menu.classList.add('active');
+      gameState = GAME_STATE.DIALOGUE;
+    }
+
+    function closeDialogue() {
+      document.getElementById('dialogueMenu').classList.remove('active');
+      gameState = GAME_STATE.PLAYING;
+      activeDialogue = null;
+    }
+
+    function gameLoop(timestamp) {
+      if (gameState === GAME_STATE.MENU) {
+        requestAnimationFrame(gameLoop);
+        return;
+      }
+
+      const delta = (timestamp - lastTime) / 1000 || 0.016;
+      lastTime = timestamp;
+
+      if (gameState === GAME_STATE.PLAYING) {
+        movePlayer();
+        player.shootCooldown = Math.max(0, player.shootCooldown - delta);
+
+        if (player.isShooting) {
+          shootRay();
+        }
+
+        updateEnemies();
+
+        // Check story points
+        for (let point of storyPoints) {
+          const dist = Math.hypot(player.x - point.x, player.y - point.y);
+          if (dist < 0.6 && !activeDialogue) {
+            showDialogue(point);
+            document.getElementById('storyText').textContent = `[${point.type.toUpperCase()}] ${point.dialogue.text}`;
+            break;
+          }
+        }
+      }
+
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    setView("fps");
+  </script>
+</body>
+</html>
