@@ -36,6 +36,11 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
       border-radius: 8px;
       overflow: hidden;
+      display: none;
+    }
+
+    #gameShell.active {
+      display: block;
     }
 
     canvas {
@@ -276,6 +281,7 @@
       text-transform: uppercase;
       transition: 0.3s ease;
       text-align: center;
+      font-family: 'Courier New', monospace;
     }
 
     .menuButton:hover {
@@ -323,19 +329,6 @@
       z-index: 7;
     }
 
-    .enemyLabel {
-      position: absolute;
-      background: rgba(255, 107, 107, 0.9);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: bold;
-      white-space: nowrap;
-      z-index: 6;
-      pointer-events: none;
-    }
-
     @media (max-width: 800px) {
       .topBar {
         flex-direction: column;
@@ -369,7 +362,7 @@
   </div>
 
   <!-- Story Modal -->
-  <div id="storyModal" class="mainMenu" style="display: none;">
+  <div id="storyModal" class="mainMenu hidden">
     <div style="max-width: 600px; text-align: left;">
       <div class="menuTitle" style="text-align: center; font-size: 32px;">Story</div>
       <div class="storyText" style="font-size: 14px; line-height: 1.8; margin: 20px 0;">
@@ -398,7 +391,7 @@
   </div>
 
   <!-- Controls Modal -->
-  <div id="controlsModal" class="mainMenu" style="display: none;">
+  <div id="controlsModal" class="mainMenu hidden">
     <div style="max-width: 600px; text-align: left;">
       <div class="menuTitle" style="text-align: center; font-size: 32px;">Controls</div>
       <div class="storyText" style="font-size: 13px; line-height: 1.8; margin: 20px 0;">
@@ -407,7 +400,6 @@
         <p>← / → or Q / E - Rotate view</p>
         <p><strong>Combat</strong></p>
         <p>SPACE - Shoot / Fire weapon</p>
-        <p>Mouse - Look around (aiming)</p>
         <p><strong>View Modes</strong></p>
         <p>Press FPS/TPP button or press V - Switch between First Person & Third Person</p>
         <p><strong>Dialogue & Interaction</strong></p>
@@ -577,21 +569,56 @@
     let lastTime = 0;
     let waveCount = 0;
     let enemiesDefeated = 0;
+    let gameLoopActive = false;
 
-    // Initialize
+    // Menu Functions
+    document.getElementById('startBtn').addEventListener('click', initGame);
+    document.getElementById('storyBtn').addEventListener('click', () => {
+      document.getElementById('storyModal').classList.remove('hidden');
+    });
+    document.getElementById('controlsBtn').addEventListener('click', () => {
+      document.getElementById('controlsModal').classList.remove('hidden');
+    });
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      gameState = gameState === GAME_STATE.PLAYING ? GAME_STATE.PAUSED : GAME_STATE.PLAYING;
+      document.getElementById('pauseBtn').textContent = gameState === GAME_STATE.PAUSED ? 'Resume' : 'Pause';
+    });
+
+    window.closeStoryModal = function() {
+      document.getElementById('storyModal').classList.add('hidden');
+    };
+    window.closeControlsModal = function() {
+      document.getElementById('controlsModal').classList.add('hidden');
+    };
+
+    // Initialize Game
     function initGame() {
       gameState = GAME_STATE.PLAYING;
       player.hp = player.maxHp;
       player.ammo = 30;
       player.score = 0;
+      player.x = 3.5;
+      player.y = 3.5;
+      player.angle = 0;
       enemies = [];
       waveCount = 0;
       enemiesDefeated = 0;
-      spawnEnemyWave();
+      activeDialogue = null;
+
       document.getElementById('mainMenu').classList.add('hidden');
-      document.getElementById('gameCanvas').parentElement.style.display = 'block';
-      lastTime = performance.now();
-      gameLoop(lastTime);
+      document.getElementById('gameShell').classList.add('active');
+      document.getElementById('playerHP').textContent = player.hp;
+      document.getElementById('playerAmmo').textContent = player.ammo;
+      document.getElementById('gameScore').textContent = player.score;
+      document.getElementById('enemyCount').textContent = '0';
+
+      spawnEnemyWave();
+      
+      if (!gameLoopActive) {
+        gameLoopActive = true;
+        lastTime = performance.now();
+        gameLoop(lastTime);
+      }
     }
 
     function spawnEnemyWave() {
@@ -611,26 +638,8 @@
           attackRange: 12
         });
       }
+      document.getElementById('enemyCount').textContent = enemies.length;
     }
-
-    document.getElementById('startBtn').addEventListener('click', initGame);
-    document.getElementById('storyBtn').addEventListener('click', () => {
-      document.getElementById('storyModal').style.display = 'flex';
-    });
-    document.getElementById('controlsBtn').addEventListener('click', () => {
-      document.getElementById('controlsModal').style.display = 'flex';
-    });
-    document.getElementById('pauseBtn').addEventListener('click', () => {
-      gameState = gameState === GAME_STATE.PLAYING ? GAME_STATE.PAUSED : GAME_STATE.PLAYING;
-      document.getElementById('pauseBtn').textContent = gameState === GAME_STATE.PAUSED ? 'Resume' : 'Pause';
-    });
-
-    window.closeStoryModal = function() {
-      document.getElementById('storyModal').style.display = 'none';
-    };
-    window.closeControlsModal = function() {
-      document.getElementById('controlsModal').style.display = 'none';
-    };
 
     // Input
     document.addEventListener('keydown', (e) => {
@@ -646,6 +655,9 @@
         if (gameState === GAME_STATE.PLAYING) {
           gameState = GAME_STATE.PAUSED;
           document.getElementById('pauseBtn').textContent = 'Resume';
+        } else if (gameState === GAME_STATE.PAUSED) {
+          gameState = GAME_STATE.PLAYING;
+          document.getElementById('pauseBtn').textContent = 'Pause';
         }
       }
       if (e.key === 'Enter' && activeDialogue) {
@@ -931,7 +943,6 @@
 
         ctx.strokeStyle = "#ff6b6b";
         ctx.lineWidth = 2;
-        ctx.strokeStyle = "#ff6b6b";
         ctx.stroke();
 
         const hpPercent = enemy.hp / enemy.maxHp;
@@ -966,10 +977,13 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (gameState === GAME_STATE.PAUSED) {
+        if (player.view === "fps") renderFPS();
+        else renderTPP();
+
         ctx.fillStyle = "rgba(0,0,0,0.6)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = var(--accent);
+        ctx.fillStyle = "#ffb454";
         ctx.font = "bold 32px Arial";
         ctx.textAlign = "center";
         ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2);
@@ -982,8 +996,10 @@
 
     function endGame() {
       gameState = GAME_STATE.GAME_OVER;
+      gameLoopActive = false;
       const menu = document.getElementById('mainMenu');
       menu.classList.remove('hidden');
+      document.getElementById('gameShell').classList.remove('active');
       menu.innerHTML = `
         <div>
           <div class="menuTitle">Mission Failed</div>
@@ -993,7 +1009,7 @@
             <p>Enemies Defeated: <strong>${enemiesDefeated}</strong></p>
             <p>Waves Survived: <strong>${waveCount}</strong></p>
           </div>
-          <button class="menuButton" onclick="location.reload()">Return to Menu</button>
+          <button class="menuButton" style="width: 200px;" onclick="location.reload()">Return to Menu</button>
         </div>
       `;
     }
@@ -1026,10 +1042,7 @@
     }
 
     function gameLoop(timestamp) {
-      if (gameState === GAME_STATE.MENU) {
-        requestAnimationFrame(gameLoop);
-        return;
-      }
+      if (!gameLoopActive) return;
 
       const delta = (timestamp - lastTime) / 1000 || 0.016;
       lastTime = timestamp;
@@ -1047,9 +1060,8 @@
         // Check story points
         for (let point of storyPoints) {
           const dist = Math.hypot(player.x - point.x, player.y - point.y);
-          if (dist < 0.6 && !activeDialogue) {
+          if (dist < 0.6 && !activeDialogue && gameState === GAME_STATE.PLAYING) {
             showDialogue(point);
-            document.getElementById('storyText').textContent = `[${point.type.toUpperCase()}] ${point.dialogue.text}`;
             break;
           }
         }
